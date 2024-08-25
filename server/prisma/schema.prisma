@@ -1,0 +1,167 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+
+model User {
+  id            String          @id @default(uuid())
+  name          String          @default("NO_NAME")
+  email         String          @unique
+  role          UserRole          @default(USER)
+  password      String?
+  emailVerified DateTime?
+  image         String?
+  address       Json?
+  paymentMethod String?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  accounts      Account[]
+  sessions      Session[]
+  orders        Order[]
+  reviews       Review[]
+  cart          Cart?
+
+  @@map("user")
+}
+
+model Account {
+  id                String   @id @default(uuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refreshToken      String?
+  accessToken       String?
+  expiresAt         Int?
+  tokenType         String?
+  scope             String?
+  idToken           String?
+  sessionState      String?
+  user              User     @relation(fields: [userId], references: [id])
+
+  @@unique([provider, providerAccountId])
+  @@map("account")
+}
+
+model Session {
+  sessionToken String   @id
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id])
+
+  @@map("session")
+}
+
+model VerificationToken {
+  id         String   @id @default(uuid())
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@map("verificationToken")
+}
+
+model Product {
+  id          String   @id @default(uuid())
+  name        String
+  slug        String   @unique
+  category    String
+  images      String[]
+  brand       String
+  description String
+  stock       Int
+  price       Float
+  rating      Float    @default(0)
+  numReviews  Int      @default(0)
+  isFeatured  Boolean  @default(false)
+  banner      String?
+  createdAt   DateTime @default(now())
+  reviews     Review[]
+  orderItems  OrderItem[]
+
+  @@map("product")
+}
+
+model Review {
+  id                 String   @id @default(uuid())
+  userId             String
+  productId          String
+  rating             Int
+  title              String
+  description        String
+  isVerifiedPurchase Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  user               User     @relation(fields: [userId], references: [id])
+  product            Product  @relation(fields: [productId], references: [id])
+
+  @@map("review")
+}
+
+model Cart {
+  id             String   @id @default(uuid())
+  userId         String?  @unique
+  sessionCartId  String
+  items          Json     @default("[]")
+  itemsPrice     Float
+  shippingPrice  Float
+  taxPrice       Float
+  totalPrice     Float
+  createdAt      DateTime @default(now())
+  user           User?    @relation(fields: [userId], references: [id])
+
+  @@map("cart")
+}
+
+model Order {
+  id              String   @id @default(uuid())
+  userId          String
+  shippingAddress Json
+  paymentMethod   String
+  paymentResult   Json?
+  itemsPrice      Float
+  shippingPrice   Float
+  taxPrice        Float
+  totalPrice      Float
+  isPaid          Boolean  @default(false)
+  paidAt          DateTime?
+  isDelivered     Boolean  @default(false)
+  deliveredAt     DateTime?
+  createdAt       DateTime @default(now())
+  user            User     @relation(fields: [userId], references: [id])
+  orderItems      OrderItem[]
+
+  @@map("order")
+}
+
+model OrderItem {
+  id         String   @id @default(uuid())
+  orderId    String
+  productId  String
+  qty        Int
+  price      Float
+  name       String
+  slug       String
+  image      String
+  order      Order    @relation(fields: [orderId], references: [id])
+  product    Product  @relation(fields: [productId], references: [id])
+
+  @@unique([orderId, productId])
+  @@map("orderItem")
+}
+
+
+enum UserRole{
+  ADMIN
+  USER
+}
