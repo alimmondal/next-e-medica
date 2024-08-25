@@ -19,4 +19,15 @@ const createUser = async (data: any) => {
   return user;
 };
 
-export const userService = { createUser };
+const getAllUsers = async (data: any) => {
+  const { limit = 10, page = 1 } = data;
+
+  const result = await prisma.user.findMany({
+    skip: (Number(page) - 1) * Number(limit),
+    take: Number(limit),
+    orderBy: { createdAt: "desc" },
+  });
+  return result;
+};
+
+export const userService = { createUser, getAllUsers };

@@ -1,5 +1,8 @@
 import { Request, Response } from "express";
 import { userService } from "./user.service";
+import { PrismaClient, UserRole } from "@prisma/client";
+
+const prisma = new PrismaClient();
 
 const createUser = async (req: Request, res: Response) => {
   //   const user = req.body;
@@ -23,6 +26,27 @@ const createUser = async (req: Request, res: Response) => {
   }
 };
 
+const getAllUsers = async (req: Request, res: Response) => {
+  try {
+    const { limit = 10, page = 1 } = req.query;
+
+    const users = await userService.getAllUsers(req.query);
+
+    const totalUsers = await prisma.user.count();
+
+    res.status(200).json({
+      data: users,
+      totalPages: Math.ceil(totalUsers / Number(limit)),
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "An error occurred while fetching users",
+    });
+  }
+};
+
 export const userController = {
   createUser,
+  getAllUsers,
 };

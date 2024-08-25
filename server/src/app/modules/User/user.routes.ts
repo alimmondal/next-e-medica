@@ -5,14 +5,8 @@ import { PrismaClient, UserRole } from "@prisma/client";
 const router = express.Router();
 
 const prisma = new PrismaClient();
-router.post("/", userController.createUser);
-router.get("/", async (req: Request, res: Response) => {
-  const result = await prisma.user.findMany();
-  res.status(200).json({
-    success: true,
-    message: "User fetched successfully",
-    data: result,
-  });
-});
+router.post("/signUp", userController.createUser);
+
+router.get("/", userController.getAllUsers);
 
 export const UserRoutes = router;
