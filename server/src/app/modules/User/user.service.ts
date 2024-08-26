@@ -19,6 +19,32 @@ const createUser = async (data: any) => {
   return user;
 };
 
+import { Request, Response } from "express";
+
+const signInWithCredentials = async (data: any) => {
+  const { email, password } = data;
+
+  // Find the user by email
+  const user = await prisma.user.findUnique({
+    where: { email },
+  });
+
+  if (!user || !user.password) {
+    throw new Error("Invalid email or password");
+  }
+
+  // Compare the provided password with the stored hashed password
+  const isPasswordValid = bcrypt.compareSync(password, user.password);
+
+  if (!isPasswordValid) {
+    throw new Error("Invalid email or password");
+  }
+
+  // Handle successful sign-in (e.g., set a session or return a JWT)
+
+  return user;
+};
+
 const getAllUsers = async (data: any) => {
   const { limit = 10, page = 1 } = data;
 
@@ -30,4 +56,8 @@ const getAllUsers = async (data: any) => {
   return result;
 };
 
-export const userService = { createUser, getAllUsers };
+export const userService = {
+  createUser,
+  getAllUsers,
+  signInWithCredentials,
+};

@@ -9,6 +9,7 @@ const createUser = async (req: Request, res: Response) => {
   // console.log(req.body);
   try {
     const result = await userService.createUser(req.body);
+
     res.status(200).json({
       success: true,
       message: "User created successfully",
@@ -23,6 +24,25 @@ const createUser = async (req: Request, res: Response) => {
         .status(500)
         .json({ success: false, message: "An error occurred during sign-up" });
     }
+  }
+};
+
+const signIn = async (req: Request, res: Response) => {
+  //   const user = req.body;
+  // console.log(req.body);
+  try {
+    const user = await userService.signInWithCredentials(req.body);
+
+    res.status(200).json({
+      success: true,
+      message: "Sign in successfully",
+      data: user,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: "An error occurred during sign-in",
+    });
   }
 };
 
