@@ -14,5 +14,6 @@ app.get("/", (req: Request, res: Response) => {
 });
 
 app.use("/api/v1/user", UserRoutes);
+app.use("/api/v1/product", UserRoutes);
 
 export default app;

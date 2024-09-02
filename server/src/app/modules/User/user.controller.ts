@@ -46,6 +46,7 @@ const signIn = async (req: Request, res: Response) => {
   }
 };
 
+// Get users
 const getAllUsers = async (req: Request, res: Response) => {
   try {
     const { limit = 10, page = 1 } = req.query;
@@ -66,7 +67,104 @@ const getAllUsers = async (req: Request, res: Response) => {
   }
 };
 
+const getUserById = async (req: Request, res: Response) => {
+  try {
+    const { userId } = req.params;
+
+    const user = await userService.getUserById(userId);
+
+    res.status(200).json({
+      success: true,
+      data: user,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "An error occurred while fetching the user",
+    });
+  }
+};
+
+const deleteUser = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    const user = await userService.deleteUser(id);
+
+    res
+      .status(200)
+      .json({ success: true, message: "User deleted successfully" });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "An error occurred while deleting the user",
+    });
+  }
+};
+
+// Update user
+const updateUser = async (req: Request, res: Response) => {
+  try {
+    const updatedUser = await userService.updateUser(req.body);
+
+    res.status(200).json({
+      success: true,
+      message: "User updated successfully",
+      user: updatedUser,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "An error occurred while updating the user",
+    });
+  }
+};
+
+const updateUserAddress = async (req: Request, res: Response) => {
+  try {
+    const { id, address } = req.body;
+
+    const updatedUser = await userService.updateUserAddress(req.body);
+
+    res.status(200).json({
+      success: true,
+      message: "User address updated successfully",
+      user: updatedUser,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "An error occurred while updating the address",
+    });
+  }
+};
+
+const updateUserPaymentMethod = async (req: Request, res: Response) => {
+  try {
+    const { id, paymentMethod } = req.body;
+
+    const updatedUser = await userService.updateUserPaymentMethod(req.body);
+
+    res.status(200).json({
+      success: true,
+      message: "Payment method updated successfully",
+      user: updatedUser,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "An error occurred while updating the payment method",
+    });
+  }
+};
+
 export const userController = {
   createUser,
+  signIn,
   getAllUsers,
+  getUserById,
+  deleteUser,
+  updateUser,
+  updateUserAddress,
+  updateUserPaymentMethod,
 };

@@ -1,9 +1,12 @@
 import { PrismaClient, UserRole } from "@prisma/client";
 // import { UserRole } from "@prisma/client";
 import * as bcrypt from "bcrypt";
-
+import { jwtHelpers } from "../../helpers/jwtHelper";
+import { Secret } from "jsonwebtoken";
+import config from "../../../config";
 const prisma = new PrismaClient();
 
+// Create/ sign up and Sign in
 const createUser = async (data: any) => {
   // console.log(data);
   const hashedPassword = await bcrypt.hash(data.password, 12);
@@ -19,8 +22,6 @@ const createUser = async (data: any) => {
   return user;
 };
 
-import { Request, Response } from "express";
-
 const signInWithCredentials = async (data: any) => {
   const { email, password } = data;
 
@@ -29,9 +30,16 @@ const signInWithCredentials = async (data: any) => {
     where: { email },
   });
 
+  let isUserExist;
   if (!user || !user.password) {
     throw new Error("Invalid email or password");
+  } else {
+    isUserExist = user;
   }
+
+  // if (user || admin ) {
+  //   isUserExist = user || admin;
+  // }
 
   // Compare the provided password with the stored hashed password
   const isPasswordValid = bcrypt.compareSync(password, user.password);
@@ -42,6 +50,36 @@ const signInWithCredentials = async (data: any) => {
 
   // Handle successful sign-in (e.g., set a session or return a JWT)
 
+  const payloadData = {
+    id: isUserExist!.id,
+    email: isUserExist!.email,
+    role: isUserExist!.role,
+    // phoneNumber: isUserExist!.phoneNumber,
+  };
+
+  //   create access token
+  const accessToken = jwtHelpers.createToken(
+    payloadData,
+    process.env.JWT_SECRET as Secret,
+    process.env.EXPIRES_IN as string
+  );
+  //   create refresh token
+  const refreshToken = jwtHelpers.createToken(
+    payloadData,
+    config.jwt.refresh_secret as Secret,
+    config.jwt.refresh_expires_in as string
+  );
+  return { accessToken, refreshToken };
+};
+
+const getUserById = async (data: any) => {
+  const user = await prisma.user.findUnique({
+    where: { id: data },
+  });
+
+  if (!user) {
+    throw new Error("User not found");
+  }
   return user;
 };
 
@@ -56,8 +94,61 @@ const getAllUsers = async (data: any) => {
   return result;
 };
 
+const deleteUser = async (data: any): Promise<any> => {
+  const id = data.id;
+  const res = await prisma.user.delete({
+    where: { id },
+  });
+  return res;
+};
+
+const updateUser = async (data: any): Promise<any> => {
+  const { id, name, role } = data;
+
+  const updatedUser = await prisma.user.update({
+    where: { id },
+    data: {
+      name,
+      role,
+    },
+  });
+
+  return updatedUser;
+};
+
+const updateUserAddress = async (data: any): Promise<any> => {
+  const { id, address } = data;
+
+  const updatedUser = await prisma.user.update({
+    where: { id },
+    data: {
+      address,
+    },
+  });
+
+  return updatedUser;
+};
+
+const updateUserPaymentMethod = async (data: any): Promise<any> => {
+  const { id, paymentMethod } = data;
+
+  const updatedUser = await prisma.user.update({
+    where: { id },
+    data: {
+      paymentMethod,
+    },
+  });
+
+  return updatedUser;
+};
+
 export const userService = {
   createUser,
   getAllUsers,
   signInWithCredentials,
+  getUserById,
+  deleteUser,
+  updateUser,
+  updateUserAddress,
+  updateUserPaymentMethod,
 };
