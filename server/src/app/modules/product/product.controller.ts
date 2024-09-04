@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { PrismaClient, Product, UserRole } from "@prisma/client";
+import { PrismaClient, Product } from "@prisma/client";
 import { productService } from "./product.service";
 import { userService } from "../User/user.service";
 
@@ -56,7 +56,8 @@ const getProductById = async (req: Request, res: Response) => {
 // UPDATE Product
 const updateProduct = async (req: Request, res: Response) => {
   try {
-    const product = await productService.updateProduct(req.body);
+    const { id } = req.params;
+    const product = await productService.updateProduct(id, req.body);
 
     res.json({
       success: true,
@@ -81,4 +82,12 @@ const deleteProduct = async (req: Request, res: Response) => {
   } catch (error: any) {
     res.status(404).json({ success: false, message: error.message });
   }
+};
+
+export const productController = {
+  createProduct,
+  getAllProducts,
+  getProductById,
+  updateProduct,
+  deleteProduct,
 };

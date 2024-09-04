@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { userService } from "./user.service";
-import { PrismaClient, UserRole } from "@prisma/client";
+import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
@@ -95,6 +95,7 @@ const deleteUser = async (req: Request, res: Response) => {
       .status(200)
       .json({ success: true, message: "User deleted successfully" });
   } catch (error) {
+    console.log(error);
     res.status(500).json({
       success: false,
       message: "An error occurred while deleting the user",
@@ -104,8 +105,11 @@ const deleteUser = async (req: Request, res: Response) => {
 
 // Update user
 const updateUser = async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { ...userData } = req.body;
+  // console.log(userData);
   try {
-    const updatedUser = await userService.updateUser(req.body);
+    const updatedUser = await userService.updateUser(id, userData);
 
     res.status(200).json({
       success: true,
@@ -113,6 +117,7 @@ const updateUser = async (req: Request, res: Response) => {
       user: updatedUser,
     });
   } catch (error) {
+    // console.log(error);
     res.status(500).json({
       success: false,
       message: "An error occurred while updating the user",
@@ -122,9 +127,9 @@ const updateUser = async (req: Request, res: Response) => {
 
 const updateUserAddress = async (req: Request, res: Response) => {
   try {
-    const { id, address } = req.body;
+    const { id } = req.params;
 
-    const updatedUser = await userService.updateUserAddress(req.body);
+    const updatedUser = await userService.updateUserAddress(id, req.body);
 
     res.status(200).json({
       success: true,
@@ -139,11 +144,11 @@ const updateUserAddress = async (req: Request, res: Response) => {
   }
 };
 
-const updateUserPaymentMethod = async (req: Request, res: Response) => {
+const updatePaymentMethod = async (req: Request, res: Response) => {
   try {
-    const { id, paymentMethod } = req.body;
+    const { id } = req.params;
 
-    const updatedUser = await userService.updateUserPaymentMethod(req.body);
+    const updatedUser = await userService.updatePaymentMethod(id, req.body);
 
     res.status(200).json({
       success: true,
@@ -166,5 +171,5 @@ export const userController = {
   deleteUser,
   updateUser,
   updateUserAddress,
-  updateUserPaymentMethod,
+  updatePaymentMethod,
 };

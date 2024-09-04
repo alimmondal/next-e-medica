@@ -1,4 +1,4 @@
-import { PrismaClient, UserRole } from "@prisma/client";
+import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 const createProduct = async (data: any): Promise<any> => {
@@ -51,8 +51,8 @@ const getProductById = async (data: any): Promise<any> => {
   return product;
 };
 
-const updateProduct = async (data: any) => {
-  const { id, ...products } = data;
+const updateProduct = async (id: string, data: any) => {
+  const { products } = data;
 
   const product = await prisma.product.update({
     where: { id },

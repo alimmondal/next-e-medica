@@ -1,5 +1,4 @@
-import { PrismaClient, UserRole } from "@prisma/client";
-// import { UserRole } from "@prisma/client";
+import { PrismaClient, User } from "@prisma/client";
 import * as bcrypt from "bcrypt";
 import { jwtHelpers } from "../../helpers/jwtHelper";
 import { Secret } from "jsonwebtoken";
@@ -94,30 +93,30 @@ const getAllUsers = async (data: any) => {
   return result;
 };
 
-const deleteUser = async (data: any): Promise<any> => {
-  const id = data.id;
+const deleteUser = async (id: any): Promise<any> => {
   const res = await prisma.user.delete({
-    where: { id },
+    where: { id: id },
   });
   return res;
 };
 
-const updateUser = async (data: any): Promise<any> => {
-  const { id, name, role } = data;
+const updateUser = async (id: string, userData: any): Promise<any> => {
+  // const { role, name } = userData;
 
   const updatedUser = await prisma.user.update({
-    where: { id },
-    data: {
-      name,
-      role,
-    },
+    where: { id: id },
+    data: userData,
+    // data:{
+    //   role: userData.role.toUpperCase() as UserRole,
+    //   name: name
+    // }
   });
 
   return updatedUser;
 };
 
-const updateUserAddress = async (data: any): Promise<any> => {
-  const { id, address } = data;
+const updateUserAddress = async (id: string, data: any): Promise<any> => {
+  const { address } = data;
 
   const updatedUser = await prisma.user.update({
     where: { id },
@@ -129,8 +128,8 @@ const updateUserAddress = async (data: any): Promise<any> => {
   return updatedUser;
 };
 
-const updateUserPaymentMethod = async (data: any): Promise<any> => {
-  const { id, paymentMethod } = data;
+const updatePaymentMethod = async (id: string, data: User): Promise<any> => {
+  const { paymentMethod } = data;
 
   const updatedUser = await prisma.user.update({
     where: { id },
@@ -150,5 +149,5 @@ export const userService = {
   deleteUser,
   updateUser,
   updateUserAddress,
-  updateUserPaymentMethod,
+  updatePaymentMethod,
 };

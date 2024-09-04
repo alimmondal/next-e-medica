@@ -1,9 +1,9 @@
 import express, { Application, Request, Response } from "express";
 import { userController } from "./user.controller";
-import { PrismaClient, UserRole } from "@prisma/client";
 
 const router = express.Router();
 
+// Signin user
 router.post("/signUp", userController.createUser);
 router.post("/signin", userController.signIn);
 
@@ -15,8 +15,8 @@ router.get("/:userId", userController.getUserById);
 router.delete("/:id", userController.deleteUser);
 
 // update
-router.patch("/user", userController.updateUser);
-router.patch("/address", userController.updateUserAddress);
-router.patch("/payment-method", userController.updateUserPaymentMethod);
+router.patch("/:id", userController.updateUser);
+router.patch("/address/:id", userController.updateUserAddress);
+router.patch("/payment-method/:id", userController.updatePaymentMethod);
 
 export const UserRoutes = router;

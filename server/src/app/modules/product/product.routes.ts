@@ -1,21 +1,18 @@
-import express, { Application, Request, Response } from "express";
-import { userController } from "./user.controller";
-import { PrismaClient, UserRole } from "@prisma/client";
-
+import express from "express";
+import { productController } from "./product.controller";
 const router = express.Router();
 
-const prisma = new PrismaClient();
-router.post("/signUp", userController.createUser);
+router.post("/", productController.createProduct);
 
 // Get
-router.get("/", userController.getAllUsers);
-router.get("/:userId", userController.getUserById);
+router.get("/", productController.getAllProducts);
+router.get("/:productId", productController.getProductById);
 // delete
-router.delete("/:id", userController.deleteUser);
+router.delete("/:id", productController.deleteProduct);
 
 // update
-router.patch("/user", userController.updateUser);
-router.patch("/address", userController.updateUserAddress);
-router.patch("/payment-method", userController.updateUserPaymentMethod);
+router.patch("/:id", productController.updateProduct);
+// router.patch("/address", productController.updateUserAddress);
+// router.patch("/payment-method", productController.updateUserPaymentMethod);
 
-export const UserRoutes = router;
+export const ProductRoute = router;
