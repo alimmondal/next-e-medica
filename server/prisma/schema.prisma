@@ -112,7 +112,7 @@ model Cart {
   id             String   @id @default(uuid())
   userId         String?  @unique
   sessionCartId  String
-  items          Json     @default("[]")
+  items          Json    @default("[]")
   itemsPrice     Float
   shippingPrice  Float
   taxPrice       Float

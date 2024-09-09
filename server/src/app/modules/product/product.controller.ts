@@ -12,7 +12,7 @@ const createProduct = async (req: Request, res: Response) => {
     res.status(201).json({
       success: true,
       message: "Product created successfully",
-      product,
+      data: product,
     });
   } catch (error: any) {
     res.status(400).json({ success: false, message: error.message });
@@ -28,9 +28,13 @@ const getAllProducts = async (req: Request, res: Response) => {
       success: true,
       data: result.products,
       totalPages: result.totalPages,
+      totalCount: result.totalCount,
     });
   } catch (error: any) {
-    res.status(400).json({ success: false, message: error.message });
+    res.status(400).json({
+      success: false,
+      message: error.message,
+    });
   }
 };
 
@@ -75,9 +79,9 @@ const updateProduct = async (req: Request, res: Response) => {
 // DELETE Product
 const deleteProduct = async (req: Request, res: Response) => {
   try {
-    await prisma.product.delete({
-      where: { id: req.params.id },
-    });
+    const id = req.params.id;
+
+    await productService.deleteProduct(id);
     res.json({ success: true, message: "Product deleted successfully" });
   } catch (error: any) {
     res.status(404).json({ success: false, message: error.message });
