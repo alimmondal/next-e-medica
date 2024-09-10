@@ -6,8 +6,12 @@ import { calcPrice } from "../../../utils/calcPrice";
 
 const prisma = new PrismaClient();
 
+type CartItem = {
+  productId: string;
+  qty: number;
+};
 // Get Cart
-export const getMyCart = async (req: Request, res: Response) => {
+const getMyCart = async (req: Request, res: Response) => {
   try {
     const sessionCartId = req.cookies.sessionCartId;
     const userId = req.user?.id;
@@ -23,56 +27,87 @@ export const getMyCart = async (req: Request, res: Response) => {
 };
 
 // Add Item to Cart
-export const addItemToCart = async (req: Request, res: Response) => {
+
+const addItemToCart = async (req: Request, res: Response) => {
   try {
-    const { productId, qty } = req.body;
+    const { productId, qty } = req.body; // Extract productId and qty from request body
     const sessionCartId = req.cookies.sessionCartId;
     const userId = req.user?.id;
 
+    if (!productId || !qty) {
+      return res
+        .status(400)
+        .json({ error: "Product ID and quantity are required" });
+    }
+
+    // Find the product in the database
     const product = await prisma.product.findUnique({
       where: { id: productId },
     });
 
-    if (!product) return res.status(404).json({ error: "Product not found" });
+    if (!product) {
+      return res.status(404).json({ error: "Product not found" });
+    }
 
+    // Find the cart by userId or sessionCartId
     const cart = await prisma.cart.findFirst({
       where: userId ? { userId } : { sessionCartId },
     });
 
-    let updatedCart;
-    if (!cart) {
-      if (product.stock < 1) throw new Error("Not enough stock");
+    // Handle the case where cart or cart.items is null or not an array
+    if (!cart || !Array.isArray(cart.items)) {
+      throw new Error("Cart not found or items are not in the correct format.");
+    }
 
-      const items = [{ productId, qty }];
+    // Cast cart.items to the expected structure (array of objects with productId and qty)
+    const cartItems = cart.items as { productId: string; qty: number }[];
+
+    let updatedCart;
+
+    if (!cart || !Array.isArray(cart.items)) {
+      // If no cart exists, create a new cart with the item
+
+      const items = [{ productId, qty }]; // Add item with productId and qty
+
+      if (product.stock < qty) {
+        return res
+          .status(400)
+          .json({ success: false, message: "Not enough stock" });
+      }
       updatedCart = await prisma.cart.create({
         data: {
           userId,
           sessionCartId,
-          items: items,
+          items: items, // Save items as JSON
           ...calcPrice(items),
         },
       });
     } else {
-      const existItem = cart.items.find(
+      // If cart exists, update the items array
+      // const cartItems = cart.items as { productId: string; qty: number }[];
+
+      const existItem = cartItems.find(
         (item: any) => item.productId === productId
       );
 
       if (existItem) {
-        if (product.stock < existItem.qty + qty)
-          throw new Error("Not enough stock");
-
+        // If item already exists, increase the quantity
+        if (product.stock < existItem.qty + qty) {
+          return res
+            .status(400)
+            .json({ success: false, message: "Not enough stock" });
+        }
         existItem.qty += qty;
       } else {
-        if (product.stock < 1) throw new Error("Not enough stock");
-
+        // If item doesn't exist, add a new item
         cart.items.push({ productId, qty });
       }
 
       updatedCart = await prisma.cart.update({
         where: { id: cart.id },
         data: {
-          items: cart.items,
-          ...calcPrice(cart.items),
+          items: cart.items, // Update items array
+          ...calcPrice(cart.items), // Recalculate the prices
         },
       });
     }
@@ -82,12 +117,14 @@ export const addItemToCart = async (req: Request, res: Response) => {
       cart: updatedCart,
     });
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({
+      error: error.message,
+    });
   }
 };
 
 // Remove Item from Cart
-export const removeItemFromCart = async (req: Request, res: Response) => {
+const removeItemFromCart = async (req: Request, res: Response) => {
   try {
     const { productId } = req.body;
     const sessionCartId = req.cookies.sessionCartId;
@@ -97,18 +134,17 @@ export const removeItemFromCart = async (req: Request, res: Response) => {
       where: userId ? { userId } : { sessionCartId },
     });
 
-    if (!cart) return res.status(404).json({ error: "Cart not found" });
+    if (!cart || !Array.isArray(cart.items))
+      return res.status(404).json({ error: "Cart not found" });
 
     const existItem = cart.items.find(
-      (item: CartItem) => item.productId === productId
+      (item: any) => item.productId === productId
     );
 
     if (!existItem)
       return res.status(404).json({ error: "Item not found in cart" });
 
-    cart.items = cart.items.filter(
-      (item: CartItem) => item.productId !== productId
-    );
+    cart.items = cart.items.filter((item: any) => item.productId !== productId);
 
     const updatedCart = await prisma.cart.update({
       where: { id: cart.id },
@@ -119,98 +155,13 @@ export const removeItemFromCart = async (req: Request, res: Response) => {
     });
 
     res.json({ success: true, cart: updatedCart });
-  } catch (error) {
+  } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
 };
 
-// CREATE Product
-const createProduct = async (req: Request, res: Response) => {
-  try {
-    const product: Product = await productService.createProduct(req.body);
-    res.status(201).json({
-      success: true,
-      message: "Product created successfully",
-      data: product,
-    });
-  } catch (error: any) {
-    res.status(400).json({ success: false, message: error.message });
-  }
-};
-
-// READ all products with optional filters and pagination
-const getAllProducts = async (req: Request, res: Response) => {
-  try {
-    const result = await productService.getAllProducts(req.query);
-
-    res.json({
-      success: true,
-      data: result.products,
-      totalPages: result.totalPages,
-      totalCount: result.totalCount,
-    });
-  } catch (error: any) {
-    res.status(400).json({
-      success: false,
-      message: error.message,
-    });
-  }
-};
-
-// READ Product by ID
-const getProductById = async (req: Request, res: Response) => {
-  try {
-    const { productId } = req.params;
-
-    const product = await productService.getProductById(productId);
-
-    res.json({
-      success: true,
-      data: product,
-    });
-  } catch (error: any) {
-    res.status(404).json({
-      success: false,
-      message: error.message,
-    });
-  }
-};
-
-// UPDATE Product
-const updateProduct = async (req: Request, res: Response) => {
-  try {
-    const { id } = req.params;
-    const product = await productService.updateProduct(id, req.body);
-
-    res.json({
-      success: true,
-      message: "Product updated successfully",
-      data: product,
-    });
-  } catch (error: any) {
-    res.status(400).json({
-      success: false,
-      message: error.message,
-    });
-  }
-};
-
-// DELETE Product
-const deleteProduct = async (req: Request, res: Response) => {
-  try {
-    const id = req.params.id;
-
-    await productService.deleteProduct(id);
-    res.json({ success: true, message: "Product deleted successfully" });
-  } catch (error: any) {
-    res.status(404).json({ success: false, message: error.message });
-  }
-};
-
 export const productController = {
-  createProduct,
-  getAllProducts,
-  getProductById,
-  updateProduct,
-  deleteProduct,
+  getMyCart,
+  addItemToCart,
+  removeItemFromCart,
 };

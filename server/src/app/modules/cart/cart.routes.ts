@@ -2,17 +2,11 @@ import express from "express";
 import { productController } from "./cart.controller";
 const router = express.Router();
 
-router.post("/", productController.createProduct);
+router.post("/", productController.addItemToCart);
 
 // Get
-router.get("/", productController.getAllProducts);
-router.get("/:productId", productController.getProductById);
+router.get("/", productController.getMyCart);
+router.get("/:productId", productController.removeItemFromCart);
 // delete
-router.delete("/:id", productController.deleteProduct);
-
-// update
-router.patch("/:id", productController.updateProduct);
-// router.patch("/address", productController.updateUserAddress);
-// router.patch("/payment-method", productController.updateUserPaymentMethod);
 
 export const ProductRoute = router;

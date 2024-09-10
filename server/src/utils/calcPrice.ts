@@ -9,9 +9,9 @@ export const calcPrice = (items: any[]) => {
     totalPrice = round2(itemsPrice + shippingPrice + taxPrice);
 
   return {
-    itemsPrice: itemsPrice.toFixed(2),
-    shippingPrice: shippingPrice.toFixed(2),
-    taxPrice: taxPrice.toFixed(2),
-    totalPrice: totalPrice.toFixed(2),
+    itemsPrice,
+    shippingPrice,
+    taxPrice,
+    totalPrice,
   };
 };
