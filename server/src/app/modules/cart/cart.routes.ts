@@ -6,7 +6,7 @@ router.post("/", productController.addItemToCart);
 
 // Get
 router.get("/", productController.getMyCart);
-router.get("/:productId", productController.removeItemFromCart);
+router.delete("/:id", productController.removeItemFromCart);
 // delete
 
-export const ProductRoute = router;
+export const CartRoutes = router;

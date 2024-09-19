@@ -3,6 +3,7 @@ import cors from "cors";
 import { Application } from "express";
 import { UserRoutes } from "./app/modules/User/user.routes";
 import { ProductRoute } from "./app/modules/product/product.routes";
+import { CartRoutes } from "./app/modules/cart/cart.routes";
 
 const app: Application = express();
 app.use(cors());
@@ -16,5 +17,6 @@ app.get("/", (req: Request, res: Response) => {
 
 app.use("/api/v1/user", UserRoutes);
 app.use("/api/v1/product", ProductRoute);
+app.use("/api/v1/cart", CartRoutes);
 
 export default app;

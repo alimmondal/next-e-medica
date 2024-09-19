@@ -111,7 +111,7 @@ model Review {
 model Cart {
   id             String   @id @default(uuid())
   userId         String?  @unique
-  sessionCartId  String
+  sessionCartId  String?
   items          Json    @default("[]")
   itemsPrice     Float
   shippingPrice  Float
