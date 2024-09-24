@@ -7,7 +7,7 @@ router.post("/", authMiddleware, productController.addItemToCart);
 
 // Get
 router.get("/", authMiddleware, productController.getMyCart);
-router.delete("/:id", productController.removeItemFromCart);
+router.post("/remove", productController.removeItemFromCart);
 // delete
 
 export const CartRoutes = router;

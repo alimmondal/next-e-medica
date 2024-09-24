@@ -1,6 +1,16 @@
-import { PrismaClient } from "@prisma/client";
+import { Cart, PrismaClient } from "@prisma/client";
 import { calcPrice } from "../../../utils/calcPrice";
 const prisma = new PrismaClient();
+
+const getMyCart = async (
+  sessionCartId: string,
+  userId: string
+): Promise<any> => {
+  const cart = await prisma.cart.findFirst({
+    where: userId ? { userId } : { sessionCartId },
+  });
+  return cart;
+};
 
 const addItemToCart = async (userId: any, data: any): Promise<any> => {
   const { items, sessionCartId } = data;
@@ -99,47 +109,35 @@ const addItemToCart = async (userId: any, data: any): Promise<any> => {
   return updatedCart;
 };
 
-const getMyCart = async (data: any): Promise<any> => {
-  const { query, limit = 10, page = 1, category, price, rating, sort } = data;
-
-  const filters: any = {
-    ...(query && { name: { contains: query, mode: "insensitive" } }),
-    ...(category && { category }),
-    ...(rating && { rating: { gte: parseFloat(rating) } }),
-    ...(price && {
-      price: {
-        gte: parseFloat(price.split("-")[0]),
-        lte: parseFloat(price.split("-")[1]),
-      },
-    }),
-  };
-
-  const orderBy: any = {
-    ...(sort === "lowest" && { price: "asc" }),
-    ...(sort === "highest" && { price: "desc" }),
-    ...(sort === "rating" && { rating: "desc" }),
-    ...(sort === "newest" && { createdAt: "desc" }),
-  };
-
-  const products = await prisma.product.findMany({
-    where: filters,
-    orderBy,
-    skip: (parseInt(page) - 1) * parseInt(limit),
-    take: parseInt(limit),
+const removeItemFromCart = async (
+  userId: any,
+  sessionCartId: string,
+  data: any
+) => {
+  const { productId } = data;
+  const cart = await prisma.cart.findFirst({
+    where: userId ? { userId } : { sessionCartId },
   });
 
-  const totalCount = await prisma.product.count({ where: filters });
+  if (!cart || !Array.isArray(cart.items)) throw new Error("Cart not found");
 
-  const totalPages = Math.ceil(totalCount / parseInt(limit));
-  return { products, totalPages, totalCount };
-};
+  const existItem = cart.items.find(
+    (item: any) => item.productId === productId
+  );
 
-const removeItemFromCart = async (id: any) => {
-  const product = await prisma.product.delete({
-    where: { id },
+  if (!existItem) throw new Error("Item not found in cart");
+
+  cart.items = cart.items.filter((item: any) => item.productId !== productId);
+
+  const updatedCart = await prisma.cart.update({
+    where: { id: cart.id },
+    data: {
+      items: cart.items,
+      ...calcPrice(cart.items),
+    },
   });
 
-  return product;
+  return updatedCart;
 };
 
 export const cartService = {

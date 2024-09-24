@@ -1,26 +1,14 @@
 import { Request, Response } from "express";
-import { PrismaClient, Product } from "@prisma/client";
-import { calcPrice } from "../../../utils/calcPrice";
 import { cartService } from "./cart.service";
-
-const prisma = new PrismaClient();
-
-type CartItem = {
-  productId: string;
-  qty: number;
-};
 
 // Get Cart
 const getMyCart = async (req: Request, res: Response) => {
   try {
     const sessionCartId = req.cookies.sessionCartId;
     // console.log(sessionCartId);
-
     const userId = req.user?.id;
 
-    const cart = await prisma.cart.findFirst({
-      where: userId ? { userId } : { sessionCartId },
-    });
+    const cart = await cartService.getMyCart(sessionCartId, userId);
 
     res.json(cart || {});
   } catch (error) {
@@ -68,31 +56,16 @@ const removeItemFromCart = async (req: Request, res: Response) => {
     const sessionCartId = req.cookies.sessionCartId;
     const userId = req.user?.id;
 
-    const cart = await prisma.cart.findFirst({
-      where: userId ? { userId } : { sessionCartId },
-    });
-
-    if (!cart || !Array.isArray(cart.items))
-      return res.status(404).json({ error: "Cart not found" });
-
-    const existItem = cart.items.find(
-      (item: any) => item.productId === productId
+    const updatedCart = await cartService.removeItemFromCart(
+      userId,
+      sessionCartId,
+      req.body
     );
 
-    if (!existItem)
-      return res.status(404).json({ error: "Item not found in cart" });
-
-    cart.items = cart.items.filter((item: any) => item.productId !== productId);
-
-    const updatedCart = await prisma.cart.update({
-      where: { id: cart.id },
-      data: {
-        items: cart.items,
-        ...calcPrice(cart.items),
-      },
+    res.json({
+      success: true,
+      cart: updatedCart,
     });
-
-    res.json({ success: true, cart: updatedCart });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
