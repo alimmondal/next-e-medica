@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { PrismaClient, Product } from "@prisma/client";
 import { calcPrice } from "../../../utils/calcPrice";
+import { cartService } from "./cart.service";
 
 const prisma = new PrismaClient();
 
@@ -8,10 +9,13 @@ type CartItem = {
   productId: string;
   qty: number;
 };
+
 // Get Cart
 const getMyCart = async (req: Request, res: Response) => {
   try {
     const sessionCartId = req.cookies.sessionCartId;
+    // console.log(sessionCartId);
+
     const userId = req.user?.id;
 
     const cart = await prisma.cart.findFirst({
@@ -28,96 +32,16 @@ const getMyCart = async (req: Request, res: Response) => {
 
 const addItemToCart = async (req: Request, res: Response) => {
   try {
-    const { items, userId } = req.body; // Extract items from request body
+    const userId = req.user?.id;
+    // const { items } = req.body; // Extract items from request body
 
-    if (!items || !Array.isArray(items) || items.length === 0) {
-      return res.status(400).json({ error: "Items are required" });
-    }
+    const updatedCart = await cartService.addItemToCart(userId, req.body);
 
-    // const userId = req.user?.id;
-    if (!userId) {
-      return res.status(400).json({ error: "User ID is required" });
-    }
-    let updatedCart;
-    // Iterate through items
-    for (const item of items) {
-      const { productId, qty } = item;
-
-      if (!productId || !qty) {
-        return res.status(400).json({
-          error: "Product ID and quantity are required for all items",
-        });
-      }
-
-      // Find the product in the database
-      const product = await prisma.product.findUnique({
-        where: { id: productId },
-      });
-
-      if (!product) {
-        return res
-          .status(404)
-          .json({ error: `Product with ID ${productId} not found` });
-      }
-
-      if (product.stock < qty) {
-        return res.status(400).json({
-          success: false,
-          message: `Not enough stock for product ID ${productId}`,
-        });
-      }
-
-      // Find the cart by userId or sessionCartId
-      let cart = await prisma.cart.findFirst({
-        where: { userId },
-      });
-
-      let cartItems =
-        (cart?.items as { productId: string; qty: number }[]) || [];
-
-      const existingItem = cartItems.find(
-        (cartItem) => cartItem.productId === productId
-      );
-
-      if (existingItem) {
-        if (product.stock < existingItem.qty + qty) {
-          return res
-            .status(400)
-            .json({ success: false, message: "Not enough stock" });
-        }
-        existingItem.qty += qty;
-      } else {
-        cartItems.push({ productId, qty });
-      }
-
-      // Calculate the prices
-      const prices = calcPrice(cartItems);
-
-      // Create or update the cart
-      if (!cart) {
-        updatedCart = await prisma.cart.create({
-          data: {
-            userId,
-            items: cartItems,
-            itemsPrice: prices.itemsPrice,
-            shippingPrice: prices.shippingPrice,
-            taxPrice: prices.taxPrice,
-            totalPrice: prices.totalPrice,
-          },
-        });
-      } else {
-        updatedCart = await prisma.cart.update({
-          where: { id: cart.id },
-          data: {
-            items: cartItems,
-            itemsPrice: prices.itemsPrice,
-            shippingPrice: prices.shippingPrice,
-            taxPrice: prices.taxPrice,
-            totalPrice: prices.totalPrice,
-          },
-        });
-      }
-    }
+    const sessionCartId = updatedCart.sessionCartId;
+    res.cookie("sessionCartId", sessionCartId, {
+      httpOnly: true,
+      secure: false,
+    });
 
     res.json({
       success: true,
@@ -130,7 +54,7 @@ const addItemToCart = async (req: Request, res: Response) => {
       },
     });
   } catch (error: any) {
-    console.error(error);
+    console.error(error, "Cart Error");
     res.status(500).json({
       error: error.message,
     });

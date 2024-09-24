@@ -1,11 +1,12 @@
 import express from "express";
 import { productController } from "./cart.controller";
+import { authMiddleware } from "../../helpers/jwtHelper";
 const router = express.Router();
 
-router.post("/", productController.addItemToCart);
+router.post("/", authMiddleware, productController.addItemToCart);
 
 // Get
-router.get("/", productController.getMyCart);
+router.get("/", authMiddleware, productController.getMyCart);
 router.delete("/:id", productController.removeItemFromCart);
 // delete
 

@@ -36,10 +36,6 @@ const signInWithCredentials = async (data: any) => {
     isUserExist = user;
   }
 
-  // if (user || admin ) {
-  //   isUserExist = user || admin;
-  // }
-
   // Compare the provided password with the stored hashed password
   const isPasswordValid = bcrypt.compareSync(password, user.password);
 
@@ -59,16 +55,16 @@ const signInWithCredentials = async (data: any) => {
   //   create access token
   const accessToken = jwtHelpers.createToken(
     payloadData,
-    process.env.JWT_SECRET as Secret,
-    process.env.EXPIRES_IN as string
+    (config.jwt.secret as Secret) || "programminghero",
+    (process.env.EXPIRES_IN as string) || "30d"
   );
   //   create refresh token
   const refreshToken = jwtHelpers.createToken(
     payloadData,
-    config.jwt.refresh_secret as Secret,
-    config.jwt.refresh_expires_in as string
+    (config.jwt.refresh_secret as Secret) || "programminghero",
+    (config.jwt.refresh_expires_in as string) || "30d"
   );
-  return { accessToken, refreshToken };
+  return { accessToken, refreshToken, user };
 };
 
 const getUserById = async (data: any) => {

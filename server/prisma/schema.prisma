@@ -123,6 +123,7 @@ model Cart {
   @@map("cart")
 }
 
+
 model Order {
   id              String   @id @default(uuid())
   userId          String

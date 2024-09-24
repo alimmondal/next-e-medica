@@ -1,4 +1,5 @@
 import express, { Request, Response } from "express";
+import cookieParser from "cookie-parser";
 import cors from "cors";
 import { Application } from "express";
 import { UserRoutes } from "./app/modules/User/user.routes";
@@ -7,7 +8,7 @@ import { CartRoutes } from "./app/modules/cart/cart.routes";
 
 const app: Application = express();
 app.use(cors());
-
+app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 

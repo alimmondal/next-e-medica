@@ -28,17 +28,22 @@ const createUser = async (req: Request, res: Response) => {
 };
 
 const signIn = async (req: Request, res: Response) => {
-  //   const user = req.body;
-  // console.log(req.body);
   try {
-    const user = await userService.signInWithCredentials(req.body);
+    const { accessToken, refreshToken, user } =
+      await userService.signInWithCredentials(req.body);
+
+    // Set the tokens in the response (either as cookies or directly in the response body)
+    res.cookie("token", accessToken, { httpOnly: true, secure: true }); // Example of setting token in cookies
 
     res.status(200).json({
       success: true,
       message: "Sign in successfully",
-      data: user,
+      accessToken, // You can also return the token in the response body
+      refreshToken,
+      user,
     });
   } catch (error: any) {
+    console.log(error);
     res.status(500).json({
       success: false,
       message: "An error occurred during sign-in",
