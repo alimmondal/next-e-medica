@@ -6,6 +6,7 @@ import { UserRoutes } from "./app/modules/User/user.routes";
 import { ProductRoute } from "./app/modules/product/product.routes";
 import { CartRoutes } from "./app/modules/cart/cart.routes";
 import { ReviewRoutes } from "./app/modules/review/review.routes";
+import { globalErrorHandler } from "./app/middleWare/globalErrorHandler";
 
 const app: Application = express();
 app.use(cors());
@@ -21,5 +22,7 @@ app.use("/api/v1/user", UserRoutes);
 app.use("/api/v1/product", ProductRoute);
 app.use("/api/v1/cart", CartRoutes);
 app.use("/api/v1/review", ReviewRoutes);
+
+// app.use(globalErrorHandler);
 
 export default app;

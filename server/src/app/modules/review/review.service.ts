@@ -1,147 +1,119 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, Review } from "@prisma/client";
 import { calcPrice } from "../../../utils/calcPrice";
 const prisma = new PrismaClient();
 
-const getMyCart = async (
-  sessionCartId: string,
-  userId: string
-): Promise<any> => {
-  const cart = await prisma.cart.findFirst({
-    where: userId ? { userId } : { sessionCartId },
+const createReview = async (data: Review, userId: string): Promise<any> => {
+  const { productId, rating, title, description } = data;
+
+  // console.log(productId);
+
+  // Check if product exists
+  const product = await prisma.product.findUnique({
+    where: { id: productId },
   });
-  return cart;
-};
-
-const addItemToCart = async (userId: any, data: any): Promise<any> => {
-  const { items, sessionCartId } = data;
-  if (!userId) {
-    throw new Error("User ID is required");
+  // console.log(product, "product");
+  if (!product) {
+    throw new Error("Product not found");
   }
 
-  if (!items || !Array.isArray(items) || items.length === 0) {
-    throw new Error("Items are required");
-  }
-
-  let updatedCart;
-
-  // Validate items and check stock (as previously implemented)
-  for (const item of items) {
-    const { productId, qty } = item;
-
-    if (!productId || !qty) {
-      throw new Error("Product ID and quantity are required for all items");
-    }
-
-    // Find the product in the database
-    const product = await prisma.product.findUnique({
-      where: { id: productId },
-    });
-
-    if (!product) {
-      throw new Error(`Product with ID ${productId} not found`);
-    }
-
-    if (product.stock < qty) {
-      throw new Error(`Not enough stock for product ID ${productId}`);
-    }
-
-    // Find the cart by userId or sessionCartId
-    let cart = await prisma.cart.findFirst({
-      where: { userId },
-    });
-
-    let cartItems =
-      (cart?.items as { productId: string; qty: number; price: number }[]) ||
-      [];
-
-    const existingItem = cartItems.find(
-      (cartItem) => cartItem.productId === productId
-    );
-
-    if (existingItem) {
-      if (product.stock < existingItem.qty + qty) {
-        throw new Error("Not enough stock");
-      }
-      existingItem.qty += qty;
-    } else {
-      cartItems.push({ productId, qty, price: product.price });
-    }
-
-    // Calculate the prices
-    const prices = calcPrice(cartItems);
-
-    // Ensure prices are valid
-    if (
-      isNaN(prices.itemsPrice) ||
-      isNaN(prices.shippingPrice) ||
-      isNaN(prices.taxPrice) ||
-      isNaN(prices.totalPrice)
-    ) {
-      throw new Error("Invalid price calculations");
-    }
-
-    // Create or update the cart
-    if (!cart) {
-      updatedCart = await prisma.cart.create({
-        data: {
-          user: { connect: { id: userId } }, // Use the user relation here
-          sessionCartId: sessionCartId,
-          items: cartItems,
-          itemsPrice: prices.itemsPrice,
-          shippingPrice: prices.shippingPrice,
-          taxPrice: prices.taxPrice,
-          totalPrice: prices.totalPrice,
-        },
-      });
-    } else {
-      updatedCart = await prisma.cart.update({
-        where: { id: cart.id },
-        data: {
-          items: cartItems,
-          itemsPrice: prices.itemsPrice,
-          shippingPrice: prices.shippingPrice,
-          taxPrice: prices.taxPrice,
-          totalPrice: prices.totalPrice,
-        },
-      });
-    }
-  }
-  return updatedCart;
-};
-
-const removeItemFromCart = async (
-  userId: any,
-  sessionCartId: string,
-  data: any
-) => {
-  const { productId } = data;
-  const cart = await prisma.cart.findFirst({
-    where: userId ? { userId } : { sessionCartId },
-  });
-
-  if (!cart || !Array.isArray(cart.items)) throw new Error("Cart not found");
-
-  const existItem = cart.items.find(
-    (item: any) => item.productId === productId
-  );
-
-  if (!existItem) throw new Error("Item not found in cart");
-
-  cart.items = cart.items.filter((item: any) => item.productId !== productId);
-
-  const updatedCart = await prisma.cart.update({
-    where: { id: cart.id },
-    data: {
-      items: cart.items,
-      ...calcPrice(cart.items),
+  // Check if review already exists
+  const existingReview = await prisma.review.findFirst({
+    where: {
+      productId,
+      userId,
     },
   });
 
-  return updatedCart;
+  let review;
+  if (existingReview) {
+    // Update the existing review
+    review = await prisma.review.update({
+      where: { id: existingReview.id },
+      data: {
+        rating,
+        title,
+        description,
+      },
+    });
+  } else {
+    // Create a new review
+    review = await prisma.review.create({
+      data: {
+        productId,
+        userId,
+        rating,
+        title,
+        description,
+      },
+    });
+  }
+
+  // Update product rating and number of reviews
+  const reviews = await prisma.review.findMany({
+    where: { productId },
+  });
+
+  const numReviews = reviews.length;
+  const avgRating =
+    reviews.reduce((acc, review) => acc + review.rating, 0) / numReviews;
+
+  await prisma.product.update({
+    where: { id: productId },
+    data: {
+      numReviews,
+      rating: avgRating,
+    },
+  });
+  // Return the updated review and product stats
+  return {
+    review,
+    productRating: avgRating,
+    numReviews,
+  };
 };
 
-export const cartService = {
-  addItemToCart,
-  getMyCart,
-  removeItemFromCart,
+const getReviews = async (productId: string, data: any): Promise<any> => {
+  const { page = 1, limit = 10 } = data;
+
+  const reviews = await prisma.review.findMany({
+    where: { productId },
+    include: {
+      user: {
+        select: { name: true },
+      },
+    },
+    orderBy: { createdAt: "desc" },
+    skip: (Number(page) - 1) * Number(limit),
+    take: Number(limit),
+  });
+
+  const totalCount = await prisma.review.count({
+    where: { productId },
+  });
+
+  return {
+    totalCount,
+    reviews,
+  };
+};
+
+const getUserReviewByProductId = async (userId: any, productId: string) => {
+  const review = await prisma.review.findFirst({
+    where: {
+      productId,
+      userId,
+    },
+  });
+
+  if (!review) {
+    throw new Error("Review not found");
+  }
+
+  return review;
+};
+
+export const reviewService = {
+  createReview,
+  getReviews,
+  getUserReviewByProductId,
 };
